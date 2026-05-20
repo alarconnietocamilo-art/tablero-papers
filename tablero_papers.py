@@ -5,7 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="Control de Papers - Camilo & Alejandro", layout="wide")
 st.title("📊 Tablero de Avance en Línea: Papers de Investigación")
-st.markdown("Gestión compartida de actividades, tiempos y responsabilidades para **Camilo Alarcón** y **Alejandro Díaz**.")
+st.markdown("Gestión compartida de actividades, tiempos y responsabilidades.")
 
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
@@ -26,7 +26,16 @@ ACTIVIDADES = [
     "Acciones según decisión (Ej. Nueva revista / Re-sometimiento)"
 ]
 
-RESPONSABLES = ["Camilo Alarcón", "Alejandro Díaz", "Ambos"]
+RESPONSABLES = [
+    "Camilo Alarcón", 
+    "Alejandro Díaz", 
+    "Jose Antonio Clemente", 
+    "Esther Aranda", 
+    "Alejandra Fiayo", 
+    "Jorge Restrepo", 
+    "Ambos"
+]
+
 ESTADOS = ["Pendiente", "En Progreso", "Completado"]
 
 st.sidebar.header("📝 Registrar / Actualizar Avance")

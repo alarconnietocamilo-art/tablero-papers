@@ -170,4 +170,3 @@ with tab_individual:
     )
 else:
 st.info("💡 La hoja de cálculo está lista. Utiliza el panel izquierdo para registrar avances.")
-:::

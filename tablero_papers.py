@@ -15,10 +15,12 @@ except Exception as e:
     st.error("Error al conectar con Google Sheets. Verifica la configuración de tus Secrets.")
     st.stop()
 
+# Estructura actualizada con la fase metodológica y de resultados
 ACTIVIDADES = [
     "Análisis estadístico y elección del modelo",
     "Escritura de la introducción",
     "Marco teórico",
+    "Escritura de la metodología y resultados",
     "Discusión y conclusiones",
     "Revisión completa del documento",
     "Decisión de sometimiento del paper a la revista",
@@ -27,10 +29,12 @@ ACTIVIDADES = [
     "Acciones según decisión (Ej. Nueva revista / Re-sometimiento)"
 ]
 
+# Incluida en la meta para el cálculo preciso del 100% hasta el sometimiento
 FASES_META_100 = [
     "Análisis estadístico y elección del modelo",
     "Escritura de la introducción",
     "Marco teórico",
+    "Escritura de la metodología y resultados",
     "Discusión y conclusiones",
     "Revisión completa del documento",
     "Decisión de sometimiento del paper a la revista",
@@ -172,7 +176,6 @@ elif opcion_menu == "Eliminar Datos Directamente":
     else:
         st.sidebar.info("No hay datos cargados para eliminar en este momento.")
 
-# --- VISUALIZACIÓN GENERAL ---
 if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
     df_visualizacion = df.dropna(subset=['Paper', 'Actividad']).copy()
     df_visualizacion['Fecha Inicio'] = pd.to_datetime(df_visualizacion['Fecha Inicio'])
@@ -194,8 +197,6 @@ if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
         st.markdown("---")
         st.subheader("📅 Cronograma Integrado (Todos los Papers)")
         
-        # --- NUEVA LÓGICA DE GANTT ---
-        # Calculamos la altura dinámica para que no se amontone
         num_papers = df_visualizacion['Paper'].nunique()
         altura_dinamica = 300 + (120 * num_papers)
         
@@ -205,20 +206,12 @@ if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
             color_discrete_sequence=px.colors.qualitative.Safe, height=altura_dinamica
         )
         
-        # Formatear los títulos para borrar "Paper=" y hacer saltos de línea si son muy largos
         fig_global.for_each_annotation(
             lambda a: a.update(text="<br>".join(textwrap.wrap(a.text.split("=")[-1], width=50)))
         )
         
-        # Ejes Y independientes y ocultar el título 'Actividad' que es redundante
         fig_global.update_yaxes(title_text="", autorange="reversed", matches=None)
-        
-        # Ajustes de márgenes
-        fig_global.update_layout(
-            margin=dict(l=20, r=20, t=40, b=20),
-            legend_title_text="Investigador"
-        )
-        
+        fig_global.update_layout(margin=dict(l=20, r=20, t=40, b=20), legend_title_text="Investigador")
         st.plotly_chart(fig_global, use_container_width=True)
 
     with tab_individual:

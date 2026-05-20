@@ -47,8 +47,7 @@ AUTORES_BASE = [
     "Jose Antonio Clemente", 
     "Esther Aranda", 
     "Alejandra Fiayo", 
-    "Jorge Restrepo", 
-    "Ambos"
+    "Jorge Restrepo"
 ]
 
 if not df.empty and 'Responsable' in df.columns:

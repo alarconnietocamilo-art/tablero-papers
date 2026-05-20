@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from streamlit_gsheets import GSheetsConnection
+import textwrap
 
 st.set_page_config(page_title="Control de Papers - Camilo & Alejandro", layout="wide")
 st.title("📊 Tablero de Avance en Línea: Papers de Investigación")
@@ -36,7 +37,6 @@ FASES_META_100 = [
     "Someter el paper"
 ]
 
-# Lista base de autores
 AUTORES_BASE = [
     "Camilo Alarcón", 
     "Alejandro Díaz", 
@@ -47,7 +47,6 @@ AUTORES_BASE = [
     "Ambos"
 ]
 
-# Combinar la lista base con los autores nuevos que ya se hayan guardado en la hoja
 if not df.empty and 'Responsable' in df.columns:
     autores_existentes = list(df['Responsable'].dropna().unique())
     RESPONSABLES = list(set(AUTORES_BASE + autores_existentes))
@@ -56,11 +55,9 @@ else:
 
 ESTADOS = ["Pendiente", "En Progreso", "Completado"]
 
-# Panel de Control Lateral dividido por acciones claras
 st.sidebar.header("⚙️ Panel de Control")
 opcion_menu = st.sidebar.radio("Selecciona una acción:", ["Registrar / Actualizar Avance", "Eliminar Datos Directamente"])
 
-# --- MODULO 1: REGISTRAR O ACTUALIZAR ---
 if opcion_menu == "Registrar / Actualizar Avance":
     st.sidebar.markdown("### 📝 Formulario de Registro")
     with st.sidebar.form("formulario_avance"):
@@ -135,7 +132,6 @@ if opcion_menu == "Registrar / Actualizar Avance":
                 st.success(f"✅ Sincronización exitosa.")
                 st.rerun()
 
-# --- MODULO 2: ELIMINACIÓN DIRECTA ---
 elif opcion_menu == "Eliminar Datos Directamente":
     st.sidebar.markdown("### 🗑️ Opciones de Borrado Frecuente")
     tipo_borrado = st.sidebar.selectbox("¿Qué deseas eliminar de la base de datos?", [
@@ -197,12 +193,32 @@ if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
         
         st.markdown("---")
         st.subheader("📅 Cronograma Integrado (Todos los Papers)")
+        
+        # --- NUEVA LÓGICA DE GANTT ---
+        # Calculamos la altura dinámica para que no se amontone
+        num_papers = df_visualizacion['Paper'].nunique()
+        altura_dinamica = 300 + (120 * num_papers)
+        
         fig_global = px.timeline(
             df_visualizacion, x_start="Fecha Inicio", x_end="Fecha Fin", y="Actividad", 
-            color="Responsable", facet_col="Paper", hover_data=["Estado", "Comentarios/Acciones"],
-            color_discrete_sequence=px.colors.qualitative.Safe
+            color="Responsable", facet_row="Paper", hover_data=["Estado", "Comentarios/Acciones"],
+            color_discrete_sequence=px.colors.qualitative.Safe, height=altura_dinamica
         )
-        fig_global.update_yaxes(autorange="reversed")
+        
+        # Formatear los títulos para borrar "Paper=" y hacer saltos de línea si son muy largos
+        fig_global.for_each_annotation(
+            lambda a: a.update(text="<br>".join(textwrap.wrap(a.text.split("=")[-1], width=50)))
+        )
+        
+        # Ejes Y independientes y ocultar el título 'Actividad' que es redundante
+        fig_global.update_yaxes(title_text="", autorange="reversed", matches=None)
+        
+        # Ajustes de márgenes
+        fig_global.update_layout(
+            margin=dict(l=20, r=20, t=40, b=20),
+            legend_title_text="Investigador"
+        )
+        
         st.plotly_chart(fig_global, use_container_width=True)
 
     with tab_individual:

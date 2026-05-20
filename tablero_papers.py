@@ -15,6 +15,7 @@ except Exception as e:
     st.error("Error al conectar con Google Sheets. Verifica la configuración de tus Secrets.")
     st.stop()
 
+# Estructura actualizada con la fase metodológica y de resultados
 ACTIVIDADES = [
     "Análisis estadístico y elección del modelo",
     "Escritura de la introducción",
@@ -28,6 +29,7 @@ ACTIVIDADES = [
     "Acciones según decisión (Ej. Nueva revista / Re-sometimiento)"
 ]
 
+# Incluida en la meta para el cálculo preciso del 100% hasta el sometimiento
 FASES_META_100 = [
     "Análisis estadístico y elección del modelo",
     "Escritura de la introducción",
@@ -103,7 +105,167 @@ if opcion_menu == "Registrar / Actualizar Avance":
                 
                 df_limpio = df.dropna(how='all').copy()
                 
-                columnas_texto = ['Responsable', 'Correo Responsable', 'Estado', 'Comentarios/Acciones']
-                for col in columnas_texto:
-                    if col not in df_limpio.columns:
-                        df
+                if not df_limpio.empty:
+                    mascara = (df_limpio['Paper'] == paper_final.strip()) & (df_limpio['Actividad'] == actividad)
+                else:
+                    mascara = pd.Series([False])
+                    
+                if mascara.any():
+                    indice = df_limpio[mascara].index[0]
+                    df_limpio.loc[indice, 'Responsable'] = responsable_final.strip()
+                    df_limpio.loc[indice, 'Correo Responsable'] = correo_responsable.strip()
+                    df_limpio.loc[indice, 'Estado'] = estado
+                    df_limpio.loc[indice, 'Fecha Inicio'] = fecha_inicio.strftime('%Y-%m-%d')
+                    df_limpio.loc[indice, 'Fecha Fin'] = fecha_fin.strftime('%Y-%m-%d')
+                    df_limpio.loc[indice, 'Comentarios/Acciones'] = accion_texto
+                    df_actualizado = df_limpio
+                else:
+                    nuevo_registro = pd.DataFrame([{
+                        "Paper": paper_final.strip(),
+                        "Actividad": actividad,
+                        "Responsable": responsable_final.strip(),
+                        "Correo Responsable": correo_responsable.strip(),
+                        "Estado": estado,
+                        "Fecha Inicio": fecha_inicio.strftime('%Y-%m-%d'),
+                        "Fecha Fin": fecha_fin.strftime('%Y-%m-%d'),
+                        "Comentarios/Acciones": accion_texto
+                    }])
+                    df_actualizado = pd.concat([df_limpio, nuevo_registro], ignore_index=True)
+                    
+                conn.update(data=df_actualizado)
+                st.success(f"✅ Sincronización exitosa.")
+                st.rerun()
+
+elif opcion_menu == "Eliminar Datos Directamente":
+    st.sidebar.markdown("### 🗑️ Opciones de Borrado Frecuente")
+    tipo_borrado = st.sidebar.selectbox("¿Qué deseas eliminar de la base de datos?", [
+        "Una Actividad específica dentro de un Proyecto",
+        "Un Proyecto (Paper) completo",
+        "Un Autor (Borrar sus registros)"
+    ])
+    
+    if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
+        df_valido = df.dropna(subset=['Paper', 'Actividad'])
+        
+        if tipo_borrado == "Una Actividad específica dentro de un Proyecto":
+            paper_a_borrar = st.sidebar.selectbox("1. Selecciona el Proyecto:", df_valido['Paper'].unique())
+            actividades_del_paper = df_valido[df_valido['Paper'] == paper_a_borrar]['Actividad'].unique()
+            actividad_a_borrar = st.sidebar.selectbox("2. Selecciona la Actividad a remover:", actividades_del_paper)
+            
+            if st.sidebar.button("❌ Eliminar Actividad Seleccionada"):
+                df_actualizado = df[~((df['Paper'] == paper_a_borrar) & (df['Actividad'] == actividad_a_borrar))]
+                conn.update(data=df_actualizado)
+                st.success(f"🗑️ Actividad '{actividad_a_borrar}' eliminada correctamente de '{paper_a_borrar}'.")
+                st.rerun()
+                
+        elif tipo_borrado == "Un Proyecto (Paper) completo":
+            paper_completo_borrar = st.sidebar.selectbox("Selecciona el Paper que deseas borrar por completo:", df_valido['Paper'].unique())
+            if st.sidebar.button("❌ Eliminar Todo el Proyecto"):
+                df_actualizado = df[df['Paper'] != paper_completo_borrar]
+                conn.update(data=df_actualizado)
+                st.success(f"🗑️ El proyecto '{paper_completo_borrar}' ha sido borrado de la nube por completo.")
+                st.rerun()
+                
+        elif tipo_borrado == "Un Autor (Borrar sus registros)":
+            autor_a_borrar = st.sidebar.selectbox("Selecciona el Autor que deseas remover de las asignaciones:", df_valido['Responsable'].unique())
+            if st.sidebar.button("❌ Eliminar Asignaciones del Autor"):
+                df_actualizado = df[df['Responsable'] != autor_a_borrar]
+                conn.update(data=df_actualizado)
+                st.success(f"🗑️ Todos los registros bajo la responsabilidad de '{autor_a_borrar}' han sido eliminados.")
+                st.rerun()
+    else:
+        st.sidebar.info("No hay datos cargados para eliminar en este momento.")
+
+if not df.empty and df.dropna(subset=['Paper', 'Actividad']).shape[0] > 0:
+    df_visualizacion = df.dropna(subset=['Paper', 'Actividad']).copy()
+    df_visualizacion['Fecha Inicio'] = pd.to_datetime(df_visualizacion['Fecha Inicio'])
+    df_visualizacion['Fecha Fin'] = pd.to_datetime(df_visualizacion['Fecha Fin'])
+
+    tab_general, tab_individual = st.tabs(["🌐 Visión General de Proyectos", "📄 Seguimiento Individual por Paper"])
+    
+    with tab_general:
+        st.subheader("Rendimiento Global del Equipo")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total de Tareas Registradas", len(df_visualizacion))
+        with col2:
+            st.metric("Papers Activos", df_visualizacion['Paper'].nunique())
+        with col3:
+            completadas_mask = df_visualizacion['Estado'].isin(['Completado', 'Completo'])
+            st.metric("Fases Completadas (Global)", len(df_visualizacion[completadas_mask]))
+        
+        st.markdown("---")
+        st.subheader("📅 Cronograma Integrado (Todos los Papers)")
+        
+        num_papers = df_visualizacion['Paper'].nunique()
+        altura_dinamica = 300 + (120 * num_papers)
+        
+        fig_global = px.timeline(
+            df_visualizacion, x_start="Fecha Inicio", x_end="Fecha Fin", y="Actividad", 
+            color="Responsable", facet_row="Paper", hover_data=["Estado", "Comentarios/Acciones"],
+            color_discrete_sequence=px.colors.qualitative.Safe, height=altura_dinamica
+        )
+        
+        fig_global.for_each_annotation(
+            lambda a: a.update(text="<br>".join(textwrap.wrap(a.text.split("=")[-1], width=50)))
+        )
+        
+        fig_global.update_yaxes(title_text="", autorange="reversed", matches=None)
+        fig_global.update_layout(margin=dict(l=20, r=20, t=40, b=20), legend_title_text="Investigador")
+        st.plotly_chart(fig_global, use_container_width=True)
+
+    with tab_individual:
+        st.subheader("🔍 Análisis Detallado de Progreso")
+        lista_papers = df_visualizacion['Paper'].unique()
+        paper_seleccionado = st.selectbox("Selecciona el paper que deseas auditar:", lista_papers)
+        
+        df_paper = df_visualizacion[df_visualizacion['Paper'] == paper_seleccionado]
+        
+        completadas_mask_ind = df_paper['Estado'].isin(['Completado', 'Completo'])
+        actividades_completadas_total = df_paper[completadas_mask_ind]['Actividad'].tolist()
+        
+        fases_meta_completadas = [act for act in actividades_completadas_total if act in FASES_META_100]
+        porcentaje_avance = len(fases_meta_completadas) / len(FASES_META_100)
+        
+        if porcentaje_avance > 1.0:
+            porcentaje_avance = 1.0
+        
+        st.markdown(f"### Nivel de Avance para Sometimiento: **{int(porcentaje_avance * 100)}%**")
+        st.progress(porcentaje_avance)
+        
+        col_grafico, col_lista = st.columns([2, 1])
+        
+        with col_grafico:
+            st.markdown("#### Cronograma de este Paper")
+            fig_ind = px.timeline(
+                df_paper, x_start="Fecha Inicio", x_end="Fecha Fin", y="Actividad", 
+                color="Responsable", hover_data=["Estado", "Comentarios/Acciones"],
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_ind.update_yaxes(autorange="reversed")
+            st.plotly_chart(fig_ind, use_container_width=True)
+            
+        with col_lista:
+            st.markdown("#### Checklist de Actividades")
+            for act in ACTIVIDADES:
+                if act in actividades_completadas_total:
+                    st.markdown(f"✅ ~~{act}~~")
+                elif act in df_paper['Actividad'].tolist():
+                    estado_actual = df_paper[df_paper['Actividad'] == act]['Estado'].values[0]
+                    st.markdown(f"🔄 **{act}** *({estado_actual})*")
+                else:
+                    st.markdown(f"⚪ {act} *(No iniciada)*")
+                    
+        st.markdown("---")
+        st.markdown(f"#### Historial de registros: {paper_seleccionado}")
+        st.dataframe(
+            df_paper.sort_values(by="Fecha Inicio", ascending=False),
+            column_config={
+                "Fecha Inicio": st.column_config.DatetimeColumn("Inicio", format="YYYY-MM-DD"),
+                "Fecha Fin": st.column_config.DatetimeColumn("Fin", format="YYYY-MM-DD"),
+            },
+            use_container_width=True, hide_index=True
+        )
+
+else:
+    st.info("💡 La hoja de cálculo está lista. Utiliza el panel izquierdo para registrar avances.")

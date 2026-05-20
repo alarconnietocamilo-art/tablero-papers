@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from streamlit_gsheets import GSheetsConnection
 
-Configuración de la página web
+# Configuración de la página web
 st.set_page_config(page_title="Control de Papers - Camilo & Alejandro", layout="wide")
 st.title("📊 Tablero de Avance en Línea: Papers de Investigación")
 st.markdown("Gestión compartida de actividades, tiempos y responsabilidades para Camilo Alarcón y Alejandro Díaz.")

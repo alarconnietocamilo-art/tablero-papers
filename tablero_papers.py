@@ -32,11 +32,10 @@ RESPONSABLES = [
     "Jose Antonio Clemente", 
     "Esther Aranda", 
     "Alejandra Fiayo", 
-    "Jorge Restrepo", 
-    "Ambos"
+    "Jorge Restrepo",
 ]
 
-ESTADOS = ["Pendiente", "En Progreso", "Completado"]
+ESTADOS = ["Pendiente", "En Progreso", "Completo"]
 
 st.sidebar.header("📝 Registrar / Actualizar Avance")
 with st.sidebar.form("formulario_avance"):

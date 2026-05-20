@@ -1,6 +1,4 @@
-:::text
-Streamlit
-Pandas
-Plotly
+streamlit
+pandas
+plotly
 st-gsheets-connection
-:::
